@@ -26,6 +26,7 @@
 
     function handleConfigChange() {
       const cfg = window.Twitch.ext.configuration.broadcaster;
+      console.log('Panel config:', cfg);
       if (cfg && cfg.content) {
         try {
           const parsed = JSON.parse(atob(cfg.content));
@@ -42,7 +43,10 @@
     window.Twitch.ext.onAuthorized(() => {
       handleConfigChange();
       window.Twitch.ext.configuration.onChanged(handleConfigChange);
+      // Fallback polling: re-fetch every 30s in case onChanged isn't triggered
+      setInterval(handleConfigChange, 30000);
     });
+
     window.Twitch.ext.onError(err => console.error('Twitch error:', err));
   </script>
 </body>
