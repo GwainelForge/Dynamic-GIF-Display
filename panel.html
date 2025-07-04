@@ -6,6 +6,7 @@
   <style>
     body { font-family: sans-serif; padding: 10px; }
     img { max-width: 100%; margin: 5px 0; }
+    .message { color: #666; font-style: italic; }
   </style>
 </head>
 <body>
@@ -17,32 +18,35 @@
 
     function renderGifList(urls) {
       if (!urls || urls.length === 0) {
-        container.innerHTML = '<p>No GIFs uploaded yet.</p>';
+        container.innerHTML = '<p class="message">No GIFs uploaded yet.</p>';
       } else {
         container.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
       }
     }
 
-    // Handle config changes
     function handleConfigChange() {
       const cfg = window.Twitch.ext.configuration.broadcaster;
+      console.log('Configuration changed:', cfg);
       if (cfg && cfg.content) {
         try {
           const parsed = JSON.parse(atob(cfg.content));
-          renderGifList(parsed.gifs || []);
-        } catch(e) {
-          console.error('Config parse error', e);
+          console.log('Parsed GIF URLs:', parsed.gifs);
+          renderGifList(parsed.gifs);
+        } catch (e) {
+          console.error('Config parse error:', e);
+          container.innerHTML = '<p class="message">Error loading GIFs.</p>';
         }
       } else {
         renderGifList([]);
       }
     }
 
-    window.Twitch.ext.onAuthorized(() => {
-      // Listen for configuration changes
-      window.Twitch.ext.configuration.onChanged(handleConfigChange);
-      // Trigger initial load
+    window.Twitch.ext.onError(err => console.error('Twitch error:', err));
+
+    window.Twitch.ext.onAuthorized(auth => {
+      console.log('Authorized with JWT:', auth.token);
       handleConfigChange();
+      window.Twitch.ext.configuration.onChanged(handleConfigChange);
     });
   </script>
 </body>
