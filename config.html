@@ -1,14 +1,69 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Config</title>
+  <meta charset="UTF-8">
+  <title>GIF Panel Config</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    img { max-width: 100px; margin: 5px; }
+    #preview { display: flex; flex-wrap: wrap; }
+  </style>
 </head>
 <body>
-    <label for="gifUrl">Inserisci l'URL della GIF:</label><br>
-    <input type="text" id="gifUrl" size="50" />
-    <button onclick="saveConfig()">Salva</button>
+  <h2>Upload a new GIF</h2>
+  <input type="file" accept="image/gif" id="gifInput" />
+  <button id="uploadBtn">Upload</button>
+  <div id="preview"></div>
 
-    <script src="config.js"></script>
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script>
+    // TODO: Replace with your Cloudinary config
+    const CLOUD_NAME = 'YOUR_CLOUD_NAME';
+    const UPLOAD_PRESET = 'YOUR_UNSIGNED_UPLOAD_PRESET';
+
+    let urls = [];
+    const preview = document.getElementById('preview');
+
+    function updateConfig() {
+      const payload = btoa(JSON.stringify({ gifs: urls }));
+      window.Twitch.ext.configuration.set('broadcaster', '1.0', payload);
+    }
+
+    function renderPreview() {
+      preview.innerHTML = urls.map(u => `<img src="${u}" />`).join('');
+    }
+
+    async function uploadGif(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', UPLOAD_PRESET);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: 'POST', body: fd
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        urls.unshift(data.secure_url);
+        renderPreview();
+        updateConfig();
+      } else {
+        console.error('Upload error', data);
+      }
+    }
+
+    document.getElementById('uploadBtn').addEventListener('click', () => {
+      const file = document.getElementById('gifInput').files[0];
+      if (file) uploadGif(file);
+    });
+
+    window.Twitch.ext.onAuthorized(() => {
+      window.Twitch.ext.configuration.onChanged(() => {
+        const cfg = window.Twitch.ext.configuration.broadcaster;
+        if (cfg && cfg.content) {
+          urls = JSON.parse(atob(cfg.content)).gifs || [];
+          renderPreview();
+        }
+      });
+    });
+  </script>
 </body>
 </html>
