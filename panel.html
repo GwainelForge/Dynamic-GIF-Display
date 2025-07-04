@@ -2,64 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GIF Panel Config</title>
+  <title>GIF Panel</title>
   <style>
     body { font-family: sans-serif; padding: 10px; }
-    input[type="text"] { width: 300px; margin-right: 8px; }
-    button { margin-right: 4px; }
-    img { max-width: 100px; margin: 5px; }
-    #preview { display: flex; flex-wrap: wrap; margin-top: 10px; }
+    img { max-width: 100%; margin: 5px 0; }
     .message { color: #666; font-style: italic; }
   </style>
 </head>
 <body>
-  <h2>Add a GIF by URL</h2>
-  <div>
-    <input type="text" id="gifInputUrl" placeholder="Enter GIF URL" />
-    <button id="addUrlBtn">Add URL</button>
-  </div>
-  <div id="preview"></div>
-
+  <h2>My GIF Panel</h2>
+  <div id="gifs"></div>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script>
-    let urls = [];
-    const preview = document.getElementById('preview');
+    const container = document.getElementById('gifs');
 
-    function renderPreview() {
+    function renderGifList(urls) {
       if (!urls || urls.length === 0) {
-        preview.innerHTML = '<p class="message">No GIFs added yet.</p>';
+        container.innerHTML = '<p class="message">No GIFs added yet.</p>';
       } else {
-        preview.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
+        container.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
       }
     }
-
-    function updateConfig() {
-      const payload = btoa(JSON.stringify({ gifs: urls }));
-      window.Twitch.ext.configuration.set('broadcaster', '1.0', payload);
-    }
-
-    document.getElementById('addUrlBtn').addEventListener('click', () => {
-      const url = document.getElementById('gifInputUrl').value.trim();
-      if (url) {
-        urls.unshift(url);
-        renderPreview();
-        updateConfig();
-        document.getElementById('gifInputUrl').value = '';
-      }
-    });
 
     function handleConfigChange() {
       const cfg = window.Twitch.ext.configuration.broadcaster;
       if (cfg && cfg.content) {
-        try { urls = JSON.parse(atob(cfg.content)).gifs || []; }
-        catch (e) { urls = []; }
-      } else urls = [];
-      renderPreview();
+        try {
+          const parsed = JSON.parse(atob(cfg.content));
+          renderGifList(parsed.gifs);
+        } catch (e) {
+          console.error('Config parse error:', e);
+          container.innerHTML = '<p class="message">Error loading GIFs.</p>';
+        }
+      } else {
+        renderGifList([]);
+      }
     }
 
     window.Twitch.ext.onAuthorized(() => {
-      window.Twitch.ext.configuration.onChanged(handleConfigChange);
       handleConfigChange();
+      window.Twitch.ext.configuration.onChanged(handleConfigChange);
     });
     window.Twitch.ext.onError(err => console.error('Twitch error:', err));
   </script>
