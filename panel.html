@@ -1,23 +1,33 @@
-﻿<!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>GIF Panel</title>
-    <style>
-        body {
-            margin: 0;
-            background: transparent;
-            text-align: center;
-        }
-
-        img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>GIF Panel</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; }
+    img { max-width: 100%; margin: 5px 0; }
+  </style>
 </head>
 <body>
-    <img id="gif" src="" alt="GIF Panel" />
-    <script src="viewer.js"></script>
+  <h2>My GIF Panel</h2>
+  <div id="gifs"></div>
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+  <script>
+    const container = document.getElementById('gifs');
+
+    function renderGifList(urls) {
+      container.innerHTML = urls.map(u => `<img src="${u}" />`).join('');
+    }
+
+    window.Twitch.ext.onAuthorized(() => {
+      window.Twitch.ext.configuration.onChanged(() => {
+        const cfg = window.Twitch.ext.configuration.broadcaster;
+        if (cfg && cfg.content) {
+          const parsed = JSON.parse(atob(cfg.content));
+          renderGifList(parsed.gifs || []);
+        }
+      });
+    });
+  </script>
 </body>
 </html>
