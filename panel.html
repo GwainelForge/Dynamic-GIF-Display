@@ -16,17 +16,33 @@
     const container = document.getElementById('gifs');
 
     function renderGifList(urls) {
-      container.innerHTML = urls.map(u => `<img src="${u}" />`).join('');
+      if (!urls || urls.length === 0) {
+        container.innerHTML = '<p>No GIFs uploaded yet.</p>';
+      } else {
+        container.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
+      }
+    }
+
+    // Handle config changes
+    function handleConfigChange() {
+      const cfg = window.Twitch.ext.configuration.broadcaster;
+      if (cfg && cfg.content) {
+        try {
+          const parsed = JSON.parse(atob(cfg.content));
+          renderGifList(parsed.gifs || []);
+        } catch(e) {
+          console.error('Config parse error', e);
+        }
+      } else {
+        renderGifList([]);
+      }
     }
 
     window.Twitch.ext.onAuthorized(() => {
-      window.Twitch.ext.configuration.onChanged(() => {
-        const cfg = window.Twitch.ext.configuration.broadcaster;
-        if (cfg && cfg.content) {
-          const parsed = JSON.parse(atob(cfg.content));
-          renderGifList(parsed.gifs || []);
-        }
-      });
+      // Listen for configuration changes
+      window.Twitch.ext.configuration.onChanged(handleConfigChange);
+      // Trigger initial load
+      handleConfigChange();
     });
   </script>
 </body>
