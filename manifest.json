@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "author_name": "IlTuoNome",
+  "description": "Estensione per mostrare una GIF nei pannelli",
+  "name": "GIF Panel Extension",
+  "version": "0.0.1",
+  "panel": {
+    "viewer_url": "https://tuo-hosting/panel.html",
+    "height": 300
+  },
+  "config": {
+    "viewer_url": "https://tuo-hosting/config.html"
+  },
+  "permissions": [ "configuration" ],
+  "vendor_code": "abc123"
+}
