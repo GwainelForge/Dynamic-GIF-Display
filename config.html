@@ -5,28 +5,29 @@
   <title>GIF Panel Config</title>
   <style>
     body { font-family: sans-serif; padding: 10px; }
+    input[type="text"] { width: 300px; margin-right: 8px; }
+    button { margin-right: 4px; }
     img { max-width: 100px; margin: 5px; }
-    #preview { display: flex; flex-wrap: wrap; }
+    #preview { display: flex; flex-wrap: wrap; margin-top: 10px; }
     .message { color: #666; font-style: italic; }
   </style>
 </head>
 <body>
-  <h2>Upload a new GIF</h2>
-  <input type="file" accept="image/gif" id="gifInput" />
-  <button id="uploadBtn">Upload</button>
+  <h2>Add a GIF by URL</h2>
+  <div>
+    <input type="text" id="gifInputUrl" placeholder="Enter GIF URL" />
+    <button id="addUrlBtn">Add URL</button>
+  </div>
   <div id="preview"></div>
 
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script>
-    const CLOUD_NAME = 'YOUR_CLOUD_NAME';
-    const UPLOAD_PRESET = 'YOUR_UNSIGNED_UPLOAD_PRESET';
-
     let urls = [];
     const preview = document.getElementById('preview');
 
     function renderPreview() {
       if (!urls || urls.length === 0) {
-        preview.innerHTML = '<p class="message">No GIFs uploaded yet.</p>';
+        preview.innerHTML = '<p class="message">No GIFs added yet.</p>';
       } else {
         preview.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
       }
@@ -34,62 +35,33 @@
 
     function updateConfig() {
       const payload = btoa(JSON.stringify({ gifs: urls }));
-      console.log('Saving config:', payload);
       window.Twitch.ext.configuration.set('broadcaster', '1.0', payload);
     }
 
-    async function uploadGif(file) {
-      try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('upload_preset', UPLOAD_PRESET);
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.secure_url) {
-          console.log('Uploaded GIF URL:', data.secure_url);
-          urls.unshift(data.secure_url);
-          renderPreview();
-          updateConfig();
-        } else {
-          throw new Error(data.error.message || 'Unknown upload error');
-        }
-      } catch (err) {
-        console.error('Upload error:', err);
-        alert('Upload failed: ' + err.message);
+    document.getElementById('addUrlBtn').addEventListener('click', () => {
+      const url = document.getElementById('gifInputUrl').value.trim();
+      if (url) {
+        urls.unshift(url);
+        renderPreview();
+        updateConfig();
+        document.getElementById('gifInputUrl').value = '';
       }
-    }
-
-    document.getElementById('uploadBtn').addEventListener('click', () => {
-      const file = document.getElementById('gifInput').files[0];
-      if (file) uploadGif(file);
     });
 
     function handleConfigChange() {
       const cfg = window.Twitch.ext.configuration.broadcaster;
-      console.log('Config updated:', cfg);
       if (cfg && cfg.content) {
-        try {
-          const parsed = JSON.parse(atob(cfg.content));
-          urls = parsed.gifs || [];
-          console.log('Loaded GIF URLs:', urls);
-        } catch (e) {
-          console.error('Config parse error:', e);
-          urls = [];
-        }
-      } else {
-        urls = [];
-      }
+        try { urls = JSON.parse(atob(cfg.content)).gifs || []; }
+        catch (e) { urls = []; }
+      } else urls = [];
       renderPreview();
     }
 
-    window.Twitch.ext.onError(err => console.error('Twitch error:', err));
-
-    window.Twitch.ext.onAuthorized(auth => {
-      console.log('Config authorized with JWT:', auth.token);
+    window.Twitch.ext.onAuthorized(() => {
       window.Twitch.ext.configuration.onChanged(handleConfigChange);
-      // initial load
       handleConfigChange();
     });
+    window.Twitch.ext.onError(err => console.error('Twitch error:', err));
   </script>
 </body>
 </html>
