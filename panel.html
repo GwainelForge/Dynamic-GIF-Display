@@ -5,48 +5,44 @@
   <title>GIF Panel</title>
   <style>
     body { font-family: sans-serif; padding: 10px; }
-    img { max-width: 100%; margin: 5px 0; }
-    .message { color: #666; font-style: italic; }
+    img { max-width: 100%; display: block; margin: 5px auto; }
+    .message { color: #666; font-style: italic; text-align: center; }
   </style>
 </head>
 <body>
   <h2>My GIF Panel</h2>
-  <div id="gifs"></div>
+  <div id="gif-container"></div>
   <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <script>
-    const container = document.getElementById('gifs');
+    const container = document.getElementById('gif-container');
 
-    function renderGifList(urls) {
-      if (!urls || urls.length === 0) {
-        container.innerHTML = '<p class="message">No GIFs added yet.</p>';
+    function renderLatestGif(url) {
+      if (!url) {
+        container.innerHTML = '<p class="message">No GIF added yet.</p>';
       } else {
-        container.innerHTML = urls.map(u => `<img src="${u}" alt="GIF" />`).join('');
+        container.innerHTML = `<img src="${url}" alt="Latest GIF" />`;
       }
     }
 
     function handleConfigChange() {
       const cfg = window.Twitch.ext.configuration.broadcaster;
-      console.log('Panel config:', cfg);
       if (cfg && cfg.content) {
         try {
           const parsed = JSON.parse(atob(cfg.content));
-          renderGifList(parsed.gifs);
+          renderLatestGif(parsed.latestGif || null);
         } catch (e) {
           console.error('Config parse error:', e);
-          container.innerHTML = '<p class="message">Error loading GIFs.</p>';
+          renderLatestGif(null);
         }
       } else {
-        renderGifList([]);
+        renderLatestGif(null);
       }
     }
 
     window.Twitch.ext.onAuthorized(() => {
       handleConfigChange();
       window.Twitch.ext.configuration.onChanged(handleConfigChange);
-      // Fallback polling: re-fetch every 30s in case onChanged isn't triggered
-      setInterval(handleConfigChange, 30000);
     });
-
     window.Twitch.ext.onError(err => console.error('Twitch error:', err));
   </script>
 </body>
